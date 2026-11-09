@@ -380,13 +380,18 @@ export class WispView extends ItemView {
 
   private renderRunRecords(): void {
     if (!this.transcriptEl) return;
-    this.transcriptEl.querySelector(".wisp-run-records")?.remove();
+    this.transcriptEl.querySelectorAll(".wisp-run-records").forEach((record) => record.remove());
     const runs = this.deps.sessionStore.active().runs;
     if (runs.length === 0) return;
-    const records = this.transcriptEl.createDiv({ cls: "wisp-run-records" });
+    const users = this.transcriptEl.querySelectorAll<HTMLElement>(".wisp-chat-message.is-user");
     for (const run of runs) {
+      if (run.status === "completed" && run.operations.length === 0) continue;
+      const userIndex = run.messages.filter((message) => message.role === "user").length - 1;
+      const anchor = users[userIndex];
+      const records = this.transcriptEl.createDiv({ cls: "wisp-run-records" });
+      if (anchor) anchor.after(records);
       const details = records.createEl("details", { cls: "wisp-run-record" });
-      details.createEl("summary", { text: `${this.t("view.operationRecord")} · ${this.t(`view.runStatus.${run.status}`)} · ${run.input.slice(0, 80)}` });
+      details.createEl("summary", { text: `${this.t("view.operationRecord")} · ${this.t(`view.runStatus.${run.status}`)} · ${this.t("view.toolActivity", { count: String(run.operations.length) })}` });
       for (const operation of run.operations) {
         const row = details.createEl("details");
         const status = operation.status === "running" ? "uncertain" : operation.status;
@@ -574,7 +579,7 @@ export class WispView extends ItemView {
 
     const sessionId = this.deps.sessionStore.active().id;
     this.transcriptEl?.querySelector(".wisp-chat-welcome")?.remove();
-    this.appendMessage("user", resume ? this.t("view.resumeRun") : input, attachments);
+    if (!resume) this.appendMessage("user", input, attachments);
     if (!resume && this.inputEl) {
       this.inputEl.value = "";
       this.resizeInput();
@@ -616,6 +621,9 @@ export class WispView extends ItemView {
           this.scrollToBottom();
         } else if (event.type === "tool_call") {
           toolActivity ??= this.appendToolActivity();
+          if (toolActivity.name.parentElement && assistantBody.parentElement) {
+            assistantBody.parentElement.before(toolActivity.name.parentElement);
+          }
           toolCallCount += 1;
           toolActivity.name.setText(this.t("view.toolActivity", { count: String(toolCallCount) }));
           toolActivity.status.setText(this.t("view.running"));
@@ -645,7 +653,9 @@ export class WispView extends ItemView {
       assistantBody.removeClass("is-loading");
       loadingIndicator.remove();
       this.setBusy(false);
+      toolActivity?.name.parentElement?.remove();
       this.renderRunRecords();
+      this.scrollToBottom();
       finishRun();
       this.activeRunFinished = undefined;
     }

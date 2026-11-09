@@ -50,6 +50,37 @@ function storage() {
 }
 
 describe("WispView recovery", () => {
+  it("keeps one collapsed operation summary before the answer, including after reopening", async () => {
+    const store = new SessionStore(storage() as never);
+    await store.load();
+    const tools = new LiteAgentToolRegistry();
+    tools.register({ name: "read", description: "Read", parameters: { type: "object", properties: {} },
+      execute: async () => ({ ok: true, value: "note" }) });
+    let calls = 0;
+    const runtime = new LiteAgentRuntime({ async *stream() {
+      if (++calls % 2 === 1) yield { type: "tool_call", id: `read-${calls}`, name: "read", arguments: {} };
+      else yield { type: "text", text: "Here is the answer." };
+    } }, tools);
+    const first = await openView(store, runtime);
+    for (const input of ["Read one", "Read two"]) {
+      send(first.root, input);
+      await vi.waitFor(() => expect(first.root.querySelectorAll(".wisp-run-record")).toHaveLength(input === "Read one" ? 1 : 2));
+    }
+    const verify = (root: HTMLElement) => {
+      expect(root.querySelectorAll(".wisp-chat-tool")).toHaveLength(0);
+      const records = root.querySelectorAll<HTMLDetailsElement>(".wisp-run-record");
+      expect(records).toHaveLength(2);
+      for (const record of records) {
+        expect(record.open).toBe(false);
+        expect(record.parentElement?.nextElementSibling?.textContent).toContain("Here is the answer.");
+      }
+    };
+    verify(first.root);
+    await first.view.onClose();
+    first.root.remove();
+    verify((await openView(store, runtime)).root);
+  });
+
   it("shows persisted operations after reopening and continues without repeating a write", async () => {
     const plugin = storage();
     const store = new SessionStore(plugin as never);
