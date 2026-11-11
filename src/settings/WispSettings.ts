@@ -49,6 +49,30 @@ const WEB_SEARCH_PROVIDER_DEFAULTS: Record<WebSearchProviderId, { readonly baseU
   brave: { baseUrl: "https://api.search.brave.com" }
 };
 
+const CHAT_PROVIDER_DEFAULTS: Record<WispProvider, { readonly baseUrl: string; readonly model: string }> = {
+  claude: { baseUrl: "https://api.anthropic.com", model: "claude-sonnet-4-20250514" },
+  "openai-compatible": { baseUrl: "https://api.openai.com/v1", model: "gpt-4o-mini" }
+};
+
+export interface ChatProviderPreset {
+  readonly id: string;
+  readonly provider: WispProvider;
+  readonly baseUrl: string;
+  readonly model: string;
+  readonly keyUrl?: string;
+}
+
+export const CHAT_PROVIDER_PRESETS: readonly ChatProviderPreset[] = [
+  { id: "anthropic", provider: "claude", baseUrl: "https://api.anthropic.com", model: "claude-sonnet-4-20250514", keyUrl: "https://console.anthropic.com/settings/keys" },
+  { id: "openai", provider: "openai-compatible", baseUrl: "https://api.openai.com/v1", model: "gpt-4o-mini", keyUrl: "https://platform.openai.com/api-keys" },
+  { id: "deepseek", provider: "openai-compatible", baseUrl: "https://api.deepseek.com", model: "deepseek-chat", keyUrl: "https://platform.deepseek.com/api_keys" },
+  { id: "moonshot", provider: "openai-compatible", baseUrl: "https://api.moonshot.cn/v1", model: "moonshot-v1-8k", keyUrl: "https://platform.kimi.com/console/api-keys" },
+  { id: "minimax", provider: "openai-compatible", baseUrl: "https://api.minimax.cn/v1", model: "MiniMax-M2", keyUrl: "https://platform.minimax.cn" },
+  { id: "minimax-legacy", provider: "openai-compatible", baseUrl: "https://api.minimaxi.com/v1", model: "MiniMax-M2", keyUrl: "https://platform.minimaxi.com" },
+  { id: "zhipu", provider: "openai-compatible", baseUrl: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4-plus", keyUrl: "https://open.bigmodel.cn/usercenter/apikeys" },
+  { id: "qwen", provider: "openai-compatible", baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1", model: "qwen-plus", keyUrl: "https://bailian.console.aliyun.com" }
+];
+
 interface PersistedWispSettings {
   readonly language?: unknown;
   readonly mobileLayout?: unknown;
@@ -72,8 +96,8 @@ export const DEFAULT_WISP_SETTINGS: WispSettings = {
   language: "auto",
   mobileLayout: "side",
   provider: "claude",
-  baseUrl: "https://api.anthropic.com",
-  model: "claude-sonnet-4-20250514",
+  baseUrl: CHAT_PROVIDER_DEFAULTS.claude.baseUrl,
+  model: CHAT_PROVIDER_DEFAULTS.claude.model,
   apiKey: "",
   systemPrompt: "",
   maxSteps: DEFAULT_MAX_STEPS,
@@ -106,8 +130,8 @@ export class WispSettingsStore {
       language: readLanguage(persisted?.language, DEFAULT_WISP_SETTINGS.language),
       mobileLayout: readMobileLayout(persisted?.mobileLayout, DEFAULT_WISP_SETTINGS.mobileLayout),
       provider,
-      baseUrl: readString(persisted?.baseUrl, provider === "claude" ? DEFAULT_WISP_SETTINGS.baseUrl : "https://api.openai.com/v1"),
-      model: readString(persisted?.model, provider === "claude" ? DEFAULT_WISP_SETTINGS.model : "gpt-4o-mini"),
+      baseUrl: readString(persisted?.baseUrl, provider === "claude" ? DEFAULT_WISP_SETTINGS.baseUrl : CHAT_PROVIDER_DEFAULTS["openai-compatible"].baseUrl),
+      model: readString(persisted?.model, provider === "claude" ? DEFAULT_WISP_SETTINGS.model : CHAT_PROVIDER_DEFAULTS["openai-compatible"].model),
       apiKey: this.plugin.app.secretStorage.getSecret(API_KEY_SECRET_ID) ?? "",
       systemPrompt: readString(persisted?.systemPrompt, DEFAULT_WISP_SETTINGS.systemPrompt),
       maxSteps: readInteger(persisted?.maxSteps, DEFAULT_MAX_STEPS, 0, 100),
@@ -186,6 +210,32 @@ export class WispSettingTab extends PluginSettingTab {
         });
       }
     });
+    const preset = (): SettingDefinition => ({
+      name: this.t("settings.preset"), desc: this.t("settings.presetDesc"),
+      render: (setting) => {
+        setting.addDropdown((dropdown) => {
+          dropdown.addOption("", this.t("settings.presetCustom"));
+          for (const candidate of CHAT_PROVIDER_PRESETS) dropdown.addOption(candidate.id, this.t(`settings.preset.${candidate.id}` as TranslationKey));
+          dropdown.setValue(this.currentPresetId());
+          dropdown.onChange((value) => {
+            this.applyChatPreset(value);
+            this.update();
+          });
+        });
+        const selected = CHAT_PROVIDER_PRESETS.find((candidate) => candidate.id === this.currentPresetId());
+        if (selected?.keyUrl) {
+          setting.setDesc(createFragment((fragment) => {
+            fragment.appendText(this.t("settings.presetDesc"));
+            fragment.appendText(" ");
+            fragment.createEl("a", {
+              text: this.t("settings.getKey"),
+              href: selected.keyUrl,
+              attr: { target: "_blank", rel: "noopener" }
+            });
+          }));
+        }
+      }
+    });
     const test = (kind: "chat" | "voice" | "web", description: TranslationKey): SettingDefinition => ({
       name: this.t("settings.testConnection"), desc: this.t(description),
       render: (setting) => { setting.addButton((button) => {
@@ -197,6 +247,7 @@ export class WispSettingTab extends PluginSettingTab {
       { name: this.t("settings.title"), desc: this.t("settings.intro") },
       control("settings.language", "settings.languageDesc", { type: "dropdown", key: "language", options: { auto: this.t("settings.auto"), en: this.t("settings.english"), "zh-CN": this.t("settings.chinese") } }),
       { type: "group", heading: this.t("settings.chatTitle"), cls: "wisp-settings-card", items: [
+        preset(),
         control("settings.provider", "settings.providerDesc", { type: "dropdown", key: "provider", options: { claude: this.t("settings.claude"), "openai-compatible": this.t("settings.openaiCompatible") } }),
         text("model", "settings.model", "settings.modelDesc"),
         secret("apiKey", "settings.apiKey", "settings.apiKeyDesc"),
@@ -256,9 +307,15 @@ export class WispSettingTab extends PluginSettingTab {
       if (typeof value !== "number" || !Number.isInteger(value) || value < minimum || value > maximum) return;
     } else if (typeof value !== typeof draft[key as keyof WispSettings]) return;
     if (key === "language" && value !== "auto" && value !== "en" && value !== "zh-CN") return;
-    if (key === "provider" && value !== "claude" && value !== "openai-compatible") return;
     if (key === "mobileLayout" && value !== "side" && value !== "fullscreen") return;
-    if (key === "voiceProvider") {
+    if (key === "provider") {
+      if (value !== "claude" && value !== "openai-compatible") return;
+      const before = CHAT_PROVIDER_DEFAULTS[draft.provider];
+      const after = CHAT_PROVIDER_DEFAULTS[value];
+      this.updateDraft({ provider: value,
+        ...(draft.baseUrl === before.baseUrl ? { baseUrl: after.baseUrl } : {}),
+        ...(draft.model === before.model ? { model: after.model } : {}) });
+    } else if (key === "voiceProvider") {
       if (value !== "openai-compatible" && value !== "deepgram" && value !== "dashscope") return;
       const before = VOICE_PROVIDER_DEFAULTS[draft.voiceProvider];
       const after = VOICE_PROVIDER_DEFAULTS[value];
@@ -273,7 +330,7 @@ export class WispSettingTab extends PluginSettingTab {
       const normalized = typeof value === "string" && !["systemPrompt", "apiKey", "voiceApiKey", "webSearchApiKey"].includes(key) ? value.trim() : value;
       this.updateDraft({ [key]: normalized });
     }
-    if (["language", "voiceProvider", "webSearchProvider"].includes(key)) this.update();
+    if (["language", "provider", "voiceProvider", "webSearchProvider"].includes(key)) this.update();
   }
 
   hide(): void {
@@ -281,6 +338,17 @@ export class WispSettingTab extends PluginSettingTab {
     this.dirty = false;
     this.saveButton = undefined;
     this.statusEl = undefined;
+  }
+
+  applyChatPreset(id: string): void {
+    const preset = CHAT_PROVIDER_PRESETS.find((candidate) => candidate.id === id);
+    if (!preset) return;
+    this.updateDraft({ provider: preset.provider, baseUrl: preset.baseUrl, model: preset.model });
+  }
+
+  private currentPresetId(): string {
+    const settings = this.draft ?? this.getSettings();
+    return CHAT_PROVIDER_PRESETS.find((candidate) => candidate.provider === settings.provider && candidate.baseUrl === settings.baseUrl)?.id ?? "";
   }
 
   private async runTest(kind: "chat" | "voice" | "web", button: ButtonComponent, test: (settings: WispSettings) => Promise<void>): Promise<void> {

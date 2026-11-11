@@ -40,6 +40,8 @@ export default class WispPlugin extends Plugin {
           requestToolApproval: (toolName, args, signal) => this.requestToolApproval(toolName, args, signal),
           getMaxSteps: () => this.wispSettings.maxSteps,
           isDebugMode: () => this.wispSettings.debugMode,
+          isConfigured: () => this.isConfigured(),
+          openSettings: () => this.openSettings(),
           mobileLayout: this.wispSettings.mobileLayout,
           createTranscriptionProvider: () => this.createTranscriptionProvider(),
           sessionStore: this.sessionStore,
@@ -77,6 +79,16 @@ export default class WispPlugin extends Plugin {
       }
     });
 
+  }
+
+  private isConfigured(): boolean {
+    return Boolean(this.wispSettings.apiKey.trim() && this.wispSettings.baseUrl.trim() && this.wispSettings.model.trim());
+  }
+
+  private openSettings(): void {
+    const setting = (this.app as unknown as { setting?: { open: () => void; openTabById: (id: string) => void } }).setting;
+    setting?.open();
+    setting?.openTabById("wisp");
   }
 
   private createRuntime(): LiteAgentRuntime | null {

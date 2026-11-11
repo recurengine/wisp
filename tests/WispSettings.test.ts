@@ -61,3 +61,32 @@ it("updates provider defaults without overwriting customized endpoints", () => {
   tab.setControlValue("voiceProvider", "dashscope");
   expect(tab.getControlValue("voiceBaseUrl")).toBe("https://custom.example.test");
 });
+it("switches chat provider defaults without overwriting customized endpoints", () => {
+  const { tab } = makeTab();
+  tab.setControlValue("provider", "openai-compatible");
+  expect(tab.getControlValue("baseUrl")).toBe("https://api.openai.com/v1");
+  expect(tab.getControlValue("model")).toBe("gpt-4o-mini");
+  tab.setControlValue("baseUrl", "https://custom.example.test");
+  tab.setControlValue("provider", "claude");
+  expect(tab.getControlValue("baseUrl")).toBe("https://custom.example.test");
+  expect(tab.getControlValue("model")).toBe("claude-sonnet-4-20250514");
+});
+it("applies a chat provider preset to provider, base URL, and model", () => {
+  const { tab } = makeTab();
+  tab.applyChatPreset("deepseek");
+  expect(tab.getControlValue("provider")).toBe("openai-compatible");
+  expect(tab.getControlValue("baseUrl")).toBe("https://api.deepseek.com");
+  expect(tab.getControlValue("model")).toBe("deepseek-chat");
+});
+it("applies the legacy MiniMax preset to its older base URL", () => {
+  const { tab } = makeTab();
+  tab.applyChatPreset("minimax-legacy");
+  expect(tab.getControlValue("provider")).toBe("openai-compatible");
+  expect(tab.getControlValue("baseUrl")).toBe("https://api.minimaxi.com/v1");
+});
+it("ignores unknown chat provider preset ids", () => {
+  const { tab } = makeTab();
+  const before = tab.getControlValue("baseUrl");
+  tab.applyChatPreset("does-not-exist");
+  expect(tab.getControlValue("baseUrl")).toBe(before);
+});

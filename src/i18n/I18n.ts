@@ -179,6 +179,21 @@ const english = {
   "modal.cancel": "Cancel",
   "modal.approve": "Approve",
   "modal.approveAll": "Approve all in this message",
+  "settings.preset": "Provider preset",
+  "settings.presetDesc": "Choose a provider to auto-fill the base URL and model. You can edit them afterwards.",
+  "settings.presetCustom": "Custom",
+  "settings.getKey": "Get API key",
+  "settings.preset.anthropic": "Claude (Anthropic)",
+  "settings.preset.openai": "OpenAI",
+  "settings.preset.deepseek": "DeepSeek",
+  "settings.preset.moonshot": "Kimi (Moonshot)",
+  "settings.preset.minimax": "MiniMax (current)",
+  "settings.preset.minimax-legacy": "MiniMax (legacy)",
+  "settings.preset.zhipu": "GLM (Zhipu)",
+  "settings.preset.qwen": "Qwen (DashScope)",
+  "view.getStarted": "Set up Wisp",
+  "view.getStartedDesc": "Add a provider and API key to start chatting with your vault.",
+  "view.openSettings": "Open settings",
   "command.open": "Open Wisp"
 } as const;
 
@@ -361,6 +376,21 @@ const chinese: Record<keyof typeof english, string> = {
   "modal.cancel": "取消",
   "modal.approve": "批准",
   "modal.approveAll": "本次全部批准",
+  "settings.preset": "Provider 预设",
+  "settings.presetDesc": "选择提供商以自动填入 Base URL 和模型，之后仍可手动修改。",
+  "settings.presetCustom": "自定义",
+  "settings.getKey": "获取 API Key",
+  "settings.preset.anthropic": "Claude（Anthropic）",
+  "settings.preset.openai": "OpenAI",
+  "settings.preset.deepseek": "DeepSeek（深度求索）",
+  "settings.preset.moonshot": "Kimi（月之暗面）",
+  "settings.preset.minimax": "MiniMax（新平台）",
+  "settings.preset.minimax-legacy": "MiniMax（旧平台）",
+  "settings.preset.zhipu": "GLM（智谱）",
+  "settings.preset.qwen": "Qwen（通义千问）",
+  "view.getStarted": "开始使用 Wisp",
+  "view.getStartedDesc": "添加一个 Provider 和 API Key，即可与你的 Vault 对话。",
+  "view.openSettings": "打开设置",
   "command.open": "打开 Wisp"
 };
 

@@ -496,6 +496,22 @@
   color: var(--text-normal);
 }
 
+.wisp-chat-welcome-action {
+  margin-top: 10px;
+  min-height: 30px;
+  padding: 5px 16px;
+  border: none;
+  border-radius: 999px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.wisp-chat-welcome-action:hover {
+  filter: brightness(0.94);
+}
+
 .wisp-chat-message {
   display: flex;
   flex-direction: column;

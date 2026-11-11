@@ -23,6 +23,8 @@ export interface WispViewDeps {
   readonly requestToolApproval: (toolName: string, args: unknown, signal?: AbortSignal) => Promise<ToolApprovalDecision>;
   readonly getMaxSteps: () => number;
   readonly isDebugMode: () => boolean;
+  readonly isConfigured: () => boolean;
+  readonly openSettings: () => void;
   readonly mobileLayout: "side" | "fullscreen";
   readonly createTranscriptionProvider: () => TranscriptionProvider | null;
   readonly sessionStore: SessionStore;
@@ -194,6 +196,11 @@ export class WispView extends ItemView {
     this.resizeInput();
     this.updateInputState();
     this.renderPendingImage();
+
+    this.registerEvent(this.app.workspace.on("active-leaf-change", (leaf) => {
+      if (leaf?.view !== this || this.activeController || this.transcribing || this.voiceRecorder.isRecording) return;
+      if (this.history.length === 0) this.renderActiveSession();
+    }));
   }
 
   async onClose(): Promise<void> {
@@ -526,6 +533,14 @@ export class WispView extends ItemView {
     if (!this.transcriptEl) return;
     const welcome = this.transcriptEl.createDiv({ cls: "wisp-chat-welcome" });
     welcome.createDiv({ cls: "wisp-chat-welcome-mark", text: "W" });
+    if (!this.deps.isConfigured()) {
+      welcome.createEl("h3", { text: this.t("view.getStarted") });
+      welcome.createEl("p", { text: this.t("view.getStartedDesc") });
+      const openSettingsButton = welcome.createEl("button", { text: this.t("view.openSettings") });
+      openSettingsButton.addClass("wisp-chat-welcome-action");
+      this.registerDomEvent(openSettingsButton, "click", () => this.deps.openSettings());
+      return;
+    }
     welcome.createEl("h3", { text: this.t("view.workingOn") });
     welcome.createEl("p", { text: this.t("view.welcome") });
     const examples = welcome.createDiv({ cls: "wisp-chat-examples" });
