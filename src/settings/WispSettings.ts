@@ -70,7 +70,8 @@ export const CHAT_PROVIDER_PRESETS: readonly ChatProviderPreset[] = [
   { id: "minimax", provider: "openai-compatible", baseUrl: "https://api.minimax.cn/v1", model: "MiniMax-M2", keyUrl: "https://platform.minimax.cn" },
   { id: "minimax-legacy", provider: "openai-compatible", baseUrl: "https://api.minimaxi.com/v1", model: "MiniMax-M2", keyUrl: "https://platform.minimaxi.com" },
   { id: "zhipu", provider: "openai-compatible", baseUrl: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4-plus", keyUrl: "https://open.bigmodel.cn/usercenter/apikeys" },
-  { id: "qwen", provider: "openai-compatible", baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1", model: "qwen-plus", keyUrl: "https://bailian.console.aliyun.com" }
+  { id: "qwen", provider: "openai-compatible", baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1", model: "qwen-plus", keyUrl: "https://bailian.console.aliyun.com" },
+  { id: "demonroute", provider: "openai-compatible", baseUrl: "https://api.demonroute.com/v1", model: "glm-5.3-flash-abliterated", keyUrl: "https://demonroute.com" }
 ];
 
 interface PersistedWispSettings {

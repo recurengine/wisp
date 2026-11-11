@@ -84,6 +84,13 @@ it("applies the legacy MiniMax preset to its older base URL", () => {
   expect(tab.getControlValue("provider")).toBe("openai-compatible");
   expect(tab.getControlValue("baseUrl")).toBe("https://api.minimaxi.com/v1");
 });
+it("applies the Demon Route preset as an OpenAI-compatible endpoint", () => {
+  const { tab } = makeTab();
+  tab.applyChatPreset("demonroute");
+  expect(tab.getControlValue("provider")).toBe("openai-compatible");
+  expect(tab.getControlValue("baseUrl")).toBe("https://api.demonroute.com/v1");
+  expect(tab.getControlValue("model")).toBe("glm-5.3-flash-abliterated");
+});
 it("ignores unknown chat provider preset ids", () => {
   const { tab } = makeTab();
   const before = tab.getControlValue("baseUrl");
