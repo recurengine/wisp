@@ -3,10 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("obsidian", async (original) => ({
   ...await original<object>(),
   ItemView: class {
-    app = { workspace: {} };
+    app = { workspace: { on: () => ({}) } };
     containerEl: HTMLElement;
     constructor(leaf: { containerEl: HTMLElement }) { this.containerEl = leaf.containerEl; }
     registerDomEvent(element: HTMLElement, name: string, callback: EventListener) { element.addEventListener(name, callback); }
+    registerEvent() {}
   },
   Modal: class {},
   Notice: class {},
@@ -31,7 +32,8 @@ async function openView(store: SessionStore, runtime: LiteAgentRuntime) {
   document.body.append(root);
   const view = new WispView({ containerEl: root } as never, {
     createRuntime: () => runtime, getMaxSteps: () => 10, requestToolApproval: async () => "approve",
-    isDebugMode: () => false, mobileLayout: "side", createTranscriptionProvider: () => null,
+    isDebugMode: () => false, isConfigured: () => true, openSettings: () => {},
+    mobileLayout: "side", createTranscriptionProvider: () => null,
     sessionStore: store, i18n: new I18n("en")
   });
   views.push(view);
@@ -168,7 +170,8 @@ describe("WispView recovery", () => {
     const view = new WispView({ containerEl: root } as never, {
       createRuntime: () => new LiteAgentRuntime(provider, tools), getMaxSteps: () => 10,
       requestToolApproval: async () => { approvals += 1; return "approve-all"; },
-      isDebugMode: () => false, mobileLayout: "side", createTranscriptionProvider: () => null,
+      isDebugMode: () => false, isConfigured: () => true, openSettings: () => {},
+      mobileLayout: "side", createTranscriptionProvider: () => null,
       sessionStore: store, i18n: new I18n("en")
     });
     views.push(view);
